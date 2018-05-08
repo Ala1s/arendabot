@@ -95,14 +95,19 @@ def set_do(message):
 def set_rooms(message):
     if message.text == 'Студия':
         cyanreq.room9 = 1
+        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/studii'
     elif message.text == '1':
         cyanreq.room1 = 1
+        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/1-komnatnye'
     elif message.text == '2':
         cyanreq.room2 = 1
+        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/2-komnatnye'
     elif message.text == '3':
         cyanreq.room3 = 1
+        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/3-komnatnye'
     else:
         cyanreq.room4 = 1
+        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/4-komnatnye'
     vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -166,7 +171,9 @@ def get_flat_dom(url):
 
 
 def get_flats_av():
-    avres = requests.get(avreq.link, vars(avreq), headers=headers)
+    av_prop_dict = vars(avreq);
+    av_prop_dict.pop('link', None)
+    avres = requests.get(avreq.link, av_prop_dict, headers=headers)
     parsed_av_search = html.fromstring(avres.text)
     links = parsed_av_search.xpath('//a[@class = "item-description-title-link"]/@href')
     for i in links:
@@ -228,7 +235,7 @@ def param_select(message):
             bot.send_message(message.chat.id, 'По твоему запросу ничего не нашлось!')
             cmd_start()
             return
-        bot.send_message(message.chat.id, first_mes_text, reply_markup=results_keyboard(0, ))
+        bot.send_message(message.chat.id, first_mes_text, reply_markup=results_keyboard(0), )
 
 
 def results_keyboard(page):

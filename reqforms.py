@@ -5,10 +5,10 @@ class CyanRequest(object):
     maxprice = 0
     minprice = 0
     offer_type = ''
-    region = 0
     room1 = 0
     room2 = 0
     room3 = 0
+    room4 = 0
     room9 = 0
     type = 0
     region = 1

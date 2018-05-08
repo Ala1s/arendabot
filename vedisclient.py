@@ -1,4 +1,5 @@
 from vedis import Vedis
+
 import config
 
 
@@ -13,7 +14,7 @@ def get_current_state(user_id):
 def set_state(user_id, value):
     with Vedis(config.db_file) as db:
         try:
-            db[user_id]=value
+            db[user_id] = value
             return True
         except:
             return False

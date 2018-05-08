@@ -7,8 +7,7 @@ class SqLiteClient:
         self.conn = sqlite3.connect(dbname)
 
     def setup(self):
-        stmt = "CREATE TABLE IF NOT EXISTS query_params (userid text, metro text," \
-               " minprice INTEGER, maxprice INTEGER, rooms INTEGER )"
+        stmt = "CREATE TABLE IF NOT EXISTS query_params (userid INTEGER, metro TEXT, minprice INTEGER, maxprice INTEGER, rooms INTEGER )"
         self.conn.execute(stmt)
         self.conn.commit()
 

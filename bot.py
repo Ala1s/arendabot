@@ -1,3 +1,5 @@
+from random import shuffle
+
 import requests
 import telebot
 from fake_useragent import UserAgent
@@ -6,12 +8,14 @@ from lxml import html
 import config
 import reqforms
 import vedisclient
+from sqlite_client import SqLiteClient
+from sqlite_data_tables import AcessConstTables
 
+const_db = AcessConstTables()
+db = SqLiteClient()
 ua = UserAgent()
 metros = {'Авиамоторная': 1, 'Автозаводская': 2, 'Академическая': 3}
-# cyanreq = reqforms.CyanRequest()
-domreq = reqforms.DomofondRequest()
-avreq = reqforms.AvitoRequest()
+
 allres = []
 
 bot = telebot.TeleBot(config.token)
@@ -33,6 +37,7 @@ def cmd_start(message):
     msg = bot.send_message(message.chat.id, "Привет! Введи параметры квартиры твоей мечты ->", reply_markup=keyboard)
     vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS.value)
     bot.register_next_step_handler(msg, param_select)
+    db.add_user(message.chat.id)
 
 
 def set_metro(message):
@@ -43,7 +48,8 @@ def set_metro(message):
     else:
         # cyanreq.metro = metro_code
         # domreq.metro = metro_code
-        avreq.metro = metro_code
+        db.set_metro(message.text, message.chat.id)
+        # avreq.metro = metro_code
         vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -60,8 +66,9 @@ def set_ot(message):
     else:
         minprice = int(message.text)
         # cyanreq.minprice = minprice
-        domreq.PriceFrom = minprice
-        avreq.pmin = minprice
+        db.set_minprice(minprice, message.chat.id)
+        # domreq.PriceFrom = minprice
+        # avreq.pmin = minprice
         vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -78,8 +85,9 @@ def set_do(message):
     else:
         maxprice = int(message.text)
         # cyanreq.maxprice = maxprice
-        domreq.PriceTo = maxprice
-        avreq.pmax = maxprice
+        db.set_maxprice(maxprice, message.chat.id)
+        # domreq.PriceTo = maxprice
+        # avreq.pmax = maxprice
         vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -92,19 +100,24 @@ def set_do(message):
 def set_rooms(message):
     if message.text == 'Студия':
         # cyanreq.room9 = 1
-        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/studii'
+        db.set_rooms(0, message.chat.id)
+        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/studii'
     elif message.text == '1':
         # cyanreq.room1 = 1
-        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/1-komnatnye'
+        db.set_rooms(1, message.chat.id)
+        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/1-komnatnye'
     elif message.text == '2':
         # cyanreq.room2 = 1
-        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/2-komnatnye'
+        db.set_rooms(2, message.chat.id)
+        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/2-komnatnye'
     elif message.text == '3':
         # cyanreq.room3 = 1
-        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/3-komnatnye'
+        db.set_rooms(3, message.chat.id)
+        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/3-komnatnye'
     else:
+        db.set_rooms(4, message.chat.id)
         # cyanreq.room4 = 1
-        avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/4-komnatnye'
+        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/4-komnatnye'
     vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -148,8 +161,13 @@ def get_flat_cyan(url):
 '''
 
 
-def get_flats_dom():
-    domres = requests.get(domreq.link, vars(domreq), headers=headers)
+def get_flats_dom(message):
+    domreq = reqforms.DomofondRequest()
+    domreq.PriceFrom(db.get_param('minprice', message.chat.id))
+    domreq.PriceTo(db.get_param('maxprice', message.chat.id))
+    link = 'https://www.domofond.ru' + const_db.get_dom_room(db.get_param('rooms', message.chat.id)) \
+           + const_db.get_dom_metro(db.get_param('metro', message.chat.id))
+    domres = requests.get(link, vars(domreq), headers=headers)
     parsed_dom_search = html.fromstring(domres.text)
     flat_links = parsed_dom_search.xpath('//a [@itemprop="sameAs"]/@href')
     dom_titles = parsed_dom_search.xpath('//span[@class="e-tile-type m-max-width text-overflow"]/strong/text()')
@@ -185,10 +203,13 @@ def get_flats_dom():
     return result'''
 
 
-def get_flats_av():
-    av_prop_dict = vars(avreq);
-    av_prop_dict.pop('link', None)
-    avres = requests.get(avreq.link, av_prop_dict, headers=headers)
+def get_flats_av(message):
+    avreq = reqforms.AvitoRequest();
+    avreq.pmin = db.get_param('minprice', message.chat.id)
+    avreq.pmax = db.get_param('maxprice', message.chat.id)
+    avreq.metro = const_db.get_avito_metro(db.get_param('metro', message.chat.id))
+    link = 'https://www.avito.ru/moskva/kvartiry/sdam' + const_db.get_avito_room(db.get_param('rooms', message.chat.id))
+    avres = requests.get(link, vars(avreq), headers=headers)
     parsed_av_search = html.fromstring(avres.text)
     links = parsed_av_search.xpath('//a[@class = "item-description-title-link"]/@href')
     for i in links:
@@ -243,7 +264,7 @@ def param_select(message):
         domres = get_flats_dom()
         avres = get_flats_av()
         global allres
-        allres = avres
+        allres = shuffle(avres + domres)
         try:
             first_mes_text = allres[0]
         except:

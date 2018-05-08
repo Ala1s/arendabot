@@ -21,7 +21,6 @@ class CyanRequest(object):
 
 
 class DomofondRequest(object):
-    link = 'https://www.domofond.ru/arenda-odnokomnatnyh-kvartir-akademicheskaya-m17'
     PropertyTypeDescription = ''
     PriceFrom = 0
     PriceTo = 0
@@ -34,7 +33,6 @@ class DomofondRequest(object):
 
 
 class AvitoRequest(object):
-    link = 'https://www.avito.ru/moskva/kvartiry/sdam/na_dlitelnyy_srok'
     pmax = 0
     pmin = 0
     metro = 0

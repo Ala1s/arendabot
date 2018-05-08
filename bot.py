@@ -1,6 +1,3 @@
-import re
-from time import sleep
-
 import requests
 import telebot
 from fake_useragent import UserAgent
@@ -12,7 +9,7 @@ import vedisclient
 
 ua = UserAgent()
 metros = {'Авиамоторная': 1, 'Автозаводская': 2, 'Академическая': 3}
-cyanreq = reqforms.CyanRequest()
+# cyanreq = reqforms.CyanRequest()
 domreq = reqforms.DomofondRequest()
 avreq = reqforms.AvitoRequest()
 allres = []
@@ -62,7 +59,7 @@ def set_ot(message):
         bot.register_next_step_handler(msg, set_ot)
     else:
         minprice = int(message.text)
-        cyanreq.minprice = minprice
+        # cyanreq.minprice = minprice
         domreq.PriceFrom = minprice
         avreq.pmin = minprice
         vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
@@ -80,7 +77,7 @@ def set_do(message):
         bot.register_next_step_handler(msg, set_ot)
     else:
         maxprice = int(message.text)
-        cyanreq.maxprice = maxprice
+        # cyanreq.maxprice = maxprice
         domreq.PriceTo = maxprice
         avreq.pmax = maxprice
         vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
@@ -94,19 +91,19 @@ def set_do(message):
 
 def set_rooms(message):
     if message.text == 'Студия':
-        cyanreq.room9 = 1
+        # cyanreq.room9 = 1
         avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/studii'
     elif message.text == '1':
-        cyanreq.room1 = 1
+        # cyanreq.room1 = 1
         avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/1-komnatnye'
     elif message.text == '2':
-        cyanreq.room2 = 1
+        # cyanreq.room2 = 1
         avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/2-komnatnye'
     elif message.text == '3':
-        cyanreq.room3 = 1
+        # cyanreq.room3 = 1
         avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/3-komnatnye'
     else:
-        cyanreq.room4 = 1
+        # cyanreq.room4 = 1
         avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/4-komnatnye'
     vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -117,6 +114,7 @@ def set_rooms(message):
     bot.register_next_step_handler(msg, param_select)
 
 
+'''
 def get_flats_cyan():
     cyanres = requests.get(cyanreq.link, vars(cyanreq), headers={'User-Agent': str(ua.random)}, proxies=proxy)
     print(cyanres.url)
@@ -147,19 +145,36 @@ def get_flat_cyan(url):
             result += metroname[i] + metrotime[i] + '\n'
     result += page.url
     return result
+'''
 
 
 def get_flats_dom():
     domres = requests.get(domreq.link, vars(domreq), headers=headers)
     parsed_dom_search = html.fromstring(domres.text)
     flat_links = parsed_dom_search.xpath('//a [@itemprop="sameAs"]/@href')
+    dom_titles = parsed_dom_search.xpath('//span[@class="e-tile-type m-max-width text-overflow"]/strong/text()')
+    dom_prices = parsed_dom_search.xpath('//h2[@class="e-tile-price m-blue-link"]/text()')
+    dom_prices_cut = []
+    for i in dom_prices:
+        dom_prices_cut.append(i.replace('\xa0', ''))
+    dom_comission = parsed_dom_search.xpath('//span[@class="e-price-breakdown"]/text()')
+    dom_comission_cut = []
+    for c in dom_comission:
+        dom_comission_cut.append(c.replace('\xa0', ' '))
+    dom_addresses = parsed_dom_search.xpath('//span[@class="m-blue-link text-overflow m-max-width"]/text()')
+    dom_metros = parsed_dom_search.cssselect('.e-metro-distance')
+    dom_metros_cut = []
+    for m in dom_metros:
+        dom_metros_cut.append(m.text_content().replace('\r', ' ').replace('\n', '').lstrip().rstrip())
     results = []
     for i in range(len(flat_links)):
-        results.append(get_flat_dom('https://www.domofond.ru' + flat_links[i]))
+        results.append(
+            dom_titles[i] + '\n' + dom_prices_cut[i] + '\n' + dom_comission_cut[i] + '\n' + dom_addresses[i] +
+            '\n' + dom_metros_cut[i] + '\n' + 'https://www.domofond.ru' + flat_links[i])
     return results
 
 
-def get_flat_dom(url):
+'''def get_flat_dom(url):
     page = requests.get(url, headers=headers)
     parsed_flat = html.fromstring(page.text)
     title = parsed_flat.xpath('//h1/text()')[0]
@@ -167,7 +182,7 @@ def get_flat_dom(url):
     address = parsed_flat.xpath('//a[@class = "e-listing-address-line"]/text()')[0]
     metro = parsed_flat.xpath('//div[@class="e-listing-address"]/p/text()')[1][2:-10]
     result = title + '\n' + price + '\n' + address + '\n' + metro + '\n' + url
-    return result
+    return result'''
 
 
 def get_flats_av():
@@ -225,7 +240,7 @@ def param_select(message):
         print('Search!!!')
         vedisclient.set_state(message.chat.id, config.States.S_RESULTS.value)
         # cyanres = get_flats_cyan()
-        # domres = get_flats_dom()
+        domres = get_flats_dom()
         avres = get_flats_av()
         global allres
         allres = avres

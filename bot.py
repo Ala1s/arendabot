@@ -1,4 +1,5 @@
 from random import shuffle
+from sqlite3 import IntegrityError;
 
 import requests
 import telebot
@@ -8,15 +9,12 @@ from lxml import html
 import config
 import reqforms
 import vedisclient
-from sqlite_client import SqLiteClient
-from sqlite_data_tables import AcessConstTables
+from sqlite_data_tables import AccessTables
 
-const_db = AcessConstTables()
-db = SqLiteClient()
+db = AccessTables()
 ua = UserAgent()
-metros = {'Авиамоторная': 1, 'Автозаводская': 2, 'Академическая': 3}
+metros = ['Авиамоторная', 'Автозаводская', 'Академическая']
 
-allres = []
 
 bot = telebot.TeleBot(config.token)
 telebot.apihelper.proxy = {'https': 'socks5://telegram:telegram@kaisq.tgvpnproxy.me:1080'}
@@ -37,19 +35,21 @@ def cmd_start(message):
     msg = bot.send_message(message.chat.id, "Привет! Введи параметры квартиры твоей мечты ->", reply_markup=keyboard)
     vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS.value)
     bot.register_next_step_handler(msg, param_select)
-    db.add_user(message.chat.id)
+    try:
+        db.add_user(message.chat.id)
+    except IntegrityError:
+        print('old user')
+
+
 
 
 def set_metro(message):
-    metro_code = metros.get(message.text)
-    if metro_code is None:
+    metro = db.check_metro(message.text)
+    if metro is None:
         msg = bot.send_message(message.chat.id, 'В Москве нет метро с таким названием! Попробуй еще раз.')
         bot.register_next_step_handler(msg, set_metro)
     else:
-        # cyanreq.metro = metro_code
-        # domreq.metro = metro_code
-        db.set_metro(message.text, message.chat.id)
-        # avreq.metro = metro_code
+        db.set_metro(metro, message.chat.id)
         vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -65,10 +65,7 @@ def set_ot(message):
         bot.register_next_step_handler(msg, set_ot)
     else:
         minprice = int(message.text)
-        # cyanreq.minprice = minprice
         db.set_minprice(minprice, message.chat.id)
-        # domreq.PriceFrom = minprice
-        # avreq.pmin = minprice
         vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -84,10 +81,7 @@ def set_do(message):
         bot.register_next_step_handler(msg, set_ot)
     else:
         maxprice = int(message.text)
-        # cyanreq.maxprice = maxprice
         db.set_maxprice(maxprice, message.chat.id)
-        # domreq.PriceTo = maxprice
-        # avreq.pmax = maxprice
         vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -99,25 +93,15 @@ def set_do(message):
 
 def set_rooms(message):
     if message.text == 'Студия':
-        # cyanreq.room9 = 1
         db.set_rooms(0, message.chat.id)
-        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/studii'
     elif message.text == '1':
-        # cyanreq.room1 = 1
         db.set_rooms(1, message.chat.id)
-        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/1-komnatnye'
     elif message.text == '2':
-        # cyanreq.room2 = 1
         db.set_rooms(2, message.chat.id)
-        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/2-komnatnye'
     elif message.text == '3':
-        # cyanreq.room3 = 1
         db.set_rooms(3, message.chat.id)
-        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/3-komnatnye'
     else:
         db.set_rooms(4, message.chat.id)
-        # cyanreq.room4 = 1
-        # avreq.link = 'https://www.avito.ru/moskva/kvartiry/sdam/4-komnatnye'
     vedisclient.set_state(message.chat.id, config.States.S_PARAMETERS)
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.add(*[telebot.types.KeyboardButton(name) for name in
@@ -163,10 +147,11 @@ def get_flat_cyan(url):
 
 def get_flats_dom(message):
     domreq = reqforms.DomofondRequest()
-    domreq.PriceFrom(db.get_param('minprice', message.chat.id))
-    domreq.PriceTo(db.get_param('maxprice', message.chat.id))
-    link = 'https://www.domofond.ru' + const_db.get_dom_room(db.get_param('rooms', message.chat.id)) \
-           + const_db.get_dom_metro(db.get_param('metro', message.chat.id))
+    domreq.PriceFrom = db.get_minprice(message.chat.id)
+    domreq.PriceTo = db.get_maxprice(message.chat.id)
+    link = 'https://www.domofond.ru' + db.get_dom_room(db.get_rooms(message.chat.id)) \
+           + db.get_dom_metro(db.get_metro(message.chat.id))
+    print(link)
     domres = requests.get(link, vars(domreq), headers=headers)
     parsed_dom_search = html.fromstring(domres.text)
     flat_links = parsed_dom_search.xpath('//a [@itemprop="sameAs"]/@href')
@@ -204,16 +189,16 @@ def get_flats_dom(message):
 
 
 def get_flats_av(message):
-    avreq = reqforms.AvitoRequest();
-    avreq.pmin = db.get_param('minprice', message.chat.id)
-    avreq.pmax = db.get_param('maxprice', message.chat.id)
-    avreq.metro = const_db.get_avito_metro(db.get_param('metro', message.chat.id))
-    link = 'https://www.avito.ru/moskva/kvartiry/sdam' + const_db.get_avito_room(db.get_param('rooms', message.chat.id))
+    avreq = reqforms.AvitoRequest()
+    avreq.pmin = db.get_minprice(message.chat.id)
+    avreq.pmax = db.get_maxprice(message.chat.id)
+    avreq.metro = db.get_avito_metro(db.get_metro(message.chat.id))
+    link = 'https://www.avito.ru/moskva/kvartiry/sdam/na_dlitelnyy_srok' + db.get_avito_room(
+        db.get_rooms(message.chat.id))
+    print(link)
     avres = requests.get(link, vars(avreq), headers=headers)
     parsed_av_search = html.fromstring(avres.text)
     links = parsed_av_search.xpath('//a[@class = "item-description-title-link"]/@href')
-    for i in links:
-        print(i)
     title = parsed_av_search.xpath('//a[@class = "item-description-title-link"]/text()')
     title_cut = []
     for s in title:
@@ -229,9 +214,13 @@ def get_flats_av(message):
     for s in address:
         address_cut.append(s.text_content().replace('\xa0', ' ').replace('\n', '').lstrip().rstrip())
     results = []
+    print(len(title_cut))
+    print(len(price_cut))
+    print(len(address_cut))
+    print(len(links))
     for i in range(0, len(title_cut)):
         results.append(
-            title_cut[i] + '\n' + price_cut[i] + '\n' + address_cut[i] + '\n' + 'https://www.avito.ru/' + links[i])
+            title_cut[i] + '\n' + price_cut[i] + '\n' + address_cut[i] + '\n' + 'https://www.avito.ru' + links[i])
     return results
 
 
@@ -250,7 +239,7 @@ def param_select(message):
         vedisclient.set_state(message.chat.id, config.States.S_UPPER.value)
         msg = bot.send_message(message.chat.id, 'Отправь максимальную цену аренды',
                                reply_markup=telebot.types.ReplyKeyboardRemove())
-        bot.register_next_step_handler(msg, set_ot)
+        bot.register_next_step_handler(msg, set_do)
     elif message.text == 'Количество комнат':
         vedisclient.set_state(message.chat.id, config.States.S_ROOMS.value)
         keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -261,26 +250,36 @@ def param_select(message):
         print('Search!!!')
         vedisclient.set_state(message.chat.id, config.States.S_RESULTS.value)
         # cyanres = get_flats_cyan()
-        domres = get_flats_dom()
-        avres = get_flats_av()
-        global allres
-        allres = shuffle(avres + domres)
+        domres = get_flats_dom(message)
+        avres = get_flats_av(message)
+        full_res = domres + avres
+        shuffle(full_res)
+        for r in full_res:
+            db.write_result(message.chat.id, r)
+        al_res = db.get_results(message.chat.id)
         try:
-            first_mes_text = allres[0]
+            first_mes_text = al_res[0]
         except:
             bot.send_message(message.chat.id, 'По твоему запросу ничего не нашлось!')
-            cmd_start()
+            restart(message)
             return
-        bot.send_message(message.chat.id, first_mes_text, reply_markup=results_keyboard(0), )
+        bot.send_message(message.chat.id, first_mes_text, reply_markup=results_keyboard(0, message.chat.id))
 
 
-def results_keyboard(page):
+def restart(message):
+    db.delete_results(message.chat.id)
+    db.delete_user(message.chat.id)
+    cmd_start(message)
+
+
+def results_keyboard(page, id):
     keyboard = telebot.types.InlineKeyboardMarkup()
     buttons = []
     if page > 0:
         buttons.append(telebot.types.InlineKeyboardButton(
             text='⬅', callback_data=str((page - 1))))
-    if page < len(allres):
+    buttons.append(telebot.types.InlineKeyboardButton(text='✔', callback_data='DONE'))
+    if page < len(db.get_results(id)):
         buttons.append(telebot.types.InlineKeyboardButton(
             text='➡', callback_data=str(page + 1)))
     keyboard.add(*buttons)
@@ -289,12 +288,14 @@ def results_keyboard(page):
 
 @bot.callback_query_handler(func=lambda c: c.data)
 def pages(c):
+    if c.data == 'DONE':
+        restart(c.message)
+        return
     bot.edit_message_text(
         chat_id=c.message.chat.id,
         message_id=c.message.message_id,
-        text=allres[int(c.data)],
-        parse_mode='Markdown',
-        reply_markup=results_keyboard(int(c.data)))
+        text=db.get_results(c.message.chat.id)[int(c.data)],
+        reply_markup=results_keyboard(int(c.data), c.message.chat.id))
 
 
 if __name__ == '__main__':

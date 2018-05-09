@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="rentbot.db" uuid="e40852ff-c0d9-440f-8442-8aff639c12ec">
+    <data-source source="LOCAL" name="rentbot.db" uuid="cb012d04-f244-497c-989f-b9286aabd8c5">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>

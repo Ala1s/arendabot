@@ -9,27 +9,48 @@ class AccessTables:
     def check_metro(self, metro):
         stmt = "SELECT metro_name FROM metro_info WHERE metro_name =(?)"
         args = (metro,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
 
     def get_avito_room(self, room_num):
         stmt = "SELECT avito FROM room_info WHERE room_num =(?)"
         args = (room_num,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
 
     def get_dom_room(self, room_num):
         stmt = "SELECT domofond FROM room_info WHERE room_num =(?)"
         args = (room_num,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
 
     def get_avito_metro(self, metroname):
         stmt = "SELECT metro_code FROM metro_info WHERE metro_name =(?)"
         args = (metroname,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
 
     def get_dom_metro(self, metroname):
         stmt = "SELECT metro_link FROM metro_info WHERE metro_name =(?)"
         args = (metroname,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
+
 
     def add_user(self, user_id):
         stmt = "INSERT INTO query_params (userid) VALUES (?)"
@@ -91,19 +112,35 @@ class AccessTables:
     def get_metro(self, user_id):
         stmt = "SELECT metro FROM query_params WHERE userid =(?)"
         args = (user_id,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
 
     def get_minprice(self, user_id):
         stmt = "SELECT minprice FROM query_params WHERE userid =(?)"
         args = (user_id,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
 
     def get_maxprice(self, user_id):
         stmt = "SELECT maxprice FROM query_params WHERE userid =(?)"
         args = (user_id,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
 
     def get_rooms(self, user_id):
         stmt = "SELECT rooms FROM query_params WHERE userid =(?)"
         args = (user_id,)
-        return str(self.conn.execute(stmt, args).fetchone()[0])
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result

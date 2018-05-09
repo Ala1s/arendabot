@@ -149,8 +149,15 @@ def get_flats_dom(message):
     domreq = reqforms.DomofondRequest()
     domreq.PriceFrom = db.get_minprice(message.chat.id)
     domreq.PriceTo = db.get_maxprice(message.chat.id)
-    link = 'https://www.domofond.ru' + db.get_dom_room(db.get_rooms(message.chat.id)) \
-           + db.get_dom_metro(db.get_metro(message.chat.id))
+    if db.get_rooms(message.chat.id) == 'None' and db.get_metro(message.chat.id) == 'None':
+        link = 'https://www.domofond.ru/arenda-kvartiry-moskva-c3584' + db.get_dom_metro(db.get_metro(message.chat.id))
+    elif db.get_rooms(message.chat.id) == 'None' and db.get_metro(message.chat.id) != 'None':
+        link = 'https://www.domofond.ru/arenda-kvartiry-' + db.get_dom_metro(db.get_metro(message.chat.id))
+    elif db.get_metro(message.chat.id) == 'None' and db.get_rooms(message.chat.id) != 'None':
+        link = 'https://www.domofond.ru' + db.get_dom_room(db.get_rooms(message.chat.id)) + 'moskva-c3584'
+    else:
+        link = 'https://www.domofond.ru' + db.get_dom_room(db.get_rooms(message.chat.id)) \
+               + db.get_dom_metro(db.get_metro(message.chat.id))
     print(link)
     domres = requests.get(link, vars(domreq), headers=headers)
     parsed_dom_search = html.fromstring(domres.text)
@@ -193,8 +200,11 @@ def get_flats_av(message):
     avreq.pmin = db.get_minprice(message.chat.id)
     avreq.pmax = db.get_maxprice(message.chat.id)
     avreq.metro = db.get_avito_metro(db.get_metro(message.chat.id))
-    link = 'https://www.avito.ru/moskva/kvartiry/sdam/na_dlitelnyy_srok' + db.get_avito_room(
-        db.get_rooms(message.chat.id))
+    if db.get_rooms(message.chat.id) == 'None':
+        link = 'https://www.avito.ru/moskva/kvartiry/sdam/na_dlitelnyy_srok'
+    else:
+        link = 'https://www.avito.ru/moskva/kvartiry/sdam/na_dlitelnyy_srok' + \
+               db.get_avito_room(db.get_rooms(message.chat.id))
     print(link)
     avres = requests.get(link, vars(avreq), headers=headers)
     parsed_av_search = html.fromstring(avres.text)

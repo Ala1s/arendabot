@@ -20,10 +20,11 @@ headers = {
 
 @bot.message_handler(commands=['start'])
 def cmd_start(message):
+    restart(message)
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     keyboard.add(*[telebot.types.KeyboardButton(name) for name in
                    ['Ближайшее метро', 'От', 'До', 'Количество комнат', 'Поиск']])
-    msg = bot.send_message(message.chat.id, "Привет! Введи параметры квартиры твоей мечты ->", reply_markup=keyboard)
+    msg = bot.send_message(message.chat.id, "Привет! Введи параметры квартиры для сьёма ->", reply_markup=keyboard)
     bot.register_next_step_handler(msg, param_select)
     try:
         db.add_user(message.chat.id)
@@ -130,17 +131,19 @@ def get_flats_cyan(message):
     cyanreq.maxprice = db.get_maxprice(message.chat.id)
     cyanreq.minprice = db.get_minprice(message.chat.id)
     cyanreq.metro = db.get_cyan_metro(db.get_metro(message.chat.id))
-    room_num = int(db.get_rooms(message.chat.id))
-    if room_num == 5:
-        cyanreq.room9 = 1
-    elif room_num == 1:
-        cyanreq.room1 = 1
-    elif room_num == 2:
-        cyanreq.room2 = 1
-    elif room_num == 3:
-        cyanreq.room3 = 1
-    elif room_num == 4:
-        cyanreq.room4 = 1
+    room_num = db.get_rooms(message.chat.id)
+    if room_num is not None and room_num != 'None':
+        rn = int(room_num)
+        if rn == 5:
+            cyanreq.room9 = 1
+        elif rn == 1:
+            cyanreq.room1 = 1
+        elif rn == 2:
+            cyanreq.room2 = 1
+        elif rn == 3:
+            cyanreq.room3 = 1
+        elif rn == 4:
+            cyanreq.room4 = 1
     print(vars(cyanreq))
     cyanres = requests.get('https://www.cian.ru/cat.php', vars(cyanreq), headers=headers)
     print(cyanres.url)
@@ -294,7 +297,6 @@ def param_select(message):
 def restart(message):
     db.delete_results(message.chat.id)
     db.delete_user(message.chat.id)
-    cmd_start(message)
 
 
 def results_keyboard(page, uid):
@@ -314,13 +316,16 @@ def results_keyboard(page, uid):
 @bot.callback_query_handler(func=lambda c: c.data)
 def pages(c):
     if c.data == 'DONE':
-        restart(c.message)
+        cmd_start(c.message)
         return
-    bot.edit_message_text(
-        chat_id=c.message.chat.id,
-        message_id=c.message.message_id,
-        text=db.get_results(c.message.chat.id)[int(c.data)],
-        reply_markup=results_keyboard(int(c.data), c.message.chat.id))
+    try:
+        bot.edit_message_text(
+            chat_id=c.message.chat.id,
+            message_id=c.message.message_id,
+            text=db.get_results(c.message.chat.id)[int(c.data)],
+            reply_markup=results_keyboard(int(c.data), c.message.chat.id))
+    except IndexError:
+        return
 
 
 if __name__ == '__main__':

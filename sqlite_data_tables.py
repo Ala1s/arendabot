@@ -51,6 +51,15 @@ class AccessTables:
             result = None
         return result
 
+    def get_cyan_metro(self, metroname):
+        stmt = "SELECT metro_code_c FROM metro_info WHERE metro_name =(?)"
+        args = (metroname,)
+        try:
+            result = str(self.conn.execute(stmt, args).fetchone()[0])
+        except:
+            result = None
+        return result
+
 
     def add_user(self, user_id):
         stmt = "INSERT INTO query_params (userid) VALUES (?)"

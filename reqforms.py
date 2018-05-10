@@ -1,5 +1,4 @@
 class CyanRequest(object):
-    link = 'https://www.cian.ru/cat.php'
     deal_type = ''
     metro = 0
     maxprice = 0
@@ -9,9 +8,9 @@ class CyanRequest(object):
     room2 = 0
     room3 = 0
     room4 = 0
+    region = 0
     room9 = 0
     type = 0
-    region = 1
 
     def __init__(self):
         self.deal_type = 'rent'
@@ -25,7 +24,6 @@ class DomofondRequest(object):
     PriceFrom = 0
     PriceTo = 0
     RentalRate = ''
-    Rooms = ''
 
     def __init__(self):
         self.RentalRate = 'Month'

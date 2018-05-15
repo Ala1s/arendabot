@@ -1,5 +1,6 @@
 from random import shuffle
 from sqlite3 import IntegrityError
+from time import sleep
 
 import requests
 import telebot
@@ -46,7 +47,7 @@ def set_metro(message):
         if rooms == '5':
             rooms = 'Студия'
         msg = bot.send_message(message.chat.id, 'Введенные параметры:\nСтанция: ' + str(db.get_metro(message.chat.id))
-                               + '\nКомнаты:' + rooms + '\nЦена:'
+                               + '\nКомнаты: ' + rooms + '\nЦена: '
                                + str(db.get_minprice(message.chat.id)) + '-' + str(db.get_maxprice(message.chat.id)),
                                reply_markup=keyboard)
         bot.register_next_step_handler(msg, param_select)
@@ -69,8 +70,8 @@ def set_ot(message):
         if rooms == '5':
             rooms = 'Студия'
         msg = bot.send_message(message.chat.id,
-                               'Введенные параметры:\nСтанция: ' + str(db.get_metro(message.chat.id)) + '\nКомнаты:'
-                               + rooms + '\nЦена:' + str(db.get_minprice(message.chat.id)) + '-'
+                               'Введенные параметры:\nСтанция: ' + str(db.get_metro(message.chat.id)) + '\nКомнаты: '
+                               + rooms + '\nЦена: ' + str(db.get_minprice(message.chat.id)) + '-'
                                + str(db.get_maxprice(message.chat.id)),
                                reply_markup=keyboard)
         bot.register_next_step_handler(msg, param_select)
@@ -94,8 +95,8 @@ def set_do(message):
         if rooms == '5':
             rooms = 'Студия'
         msg = bot.send_message(message.chat.id,
-                               'Введенные параметры:\nСтанция: ' + str(db.get_metro(message.chat.id)) + '\nКомнаты:'
-                               + rooms + '\nЦена:' + str(db.get_minprice(message.chat.id)) + '-'
+                               'Введенные параметры:\nСтанция: ' + str(db.get_metro(message.chat.id)) + '\nКомнаты: '
+                               + rooms + '\nЦена: ' + str(db.get_minprice(message.chat.id)) + '-'
                                + str(db.get_maxprice(message.chat.id)),
                                reply_markup=keyboard)
         bot.register_next_step_handler(msg, param_select)
@@ -119,8 +120,8 @@ def set_rooms(message):
     if rooms == '5':
         rooms = 'Студия'
     msg = bot.send_message(message.chat.id,
-                           'Введенные параметры:\nСтанция: ' + str(db.get_metro(message.chat.id)) + '\nКомнаты:'
-                           + rooms + '\nЦена:' + str(db.get_minprice(message.chat.id)) + '-'
+                           'Введенные параметры:\nСтанция: ' + str(db.get_metro(message.chat.id)) + '\nКомнаты: '
+                           + rooms + '\nЦена: ' + str(db.get_minprice(message.chat.id)) + '-'
                            + str(db.get_maxprice(message.chat.id)),
                            reply_markup=keyboard)
     bot.register_next_step_handler(msg, param_select)
@@ -328,5 +329,10 @@ def pages(c):
         return
 
 
-if __name__ == '__main__':
-    bot.polling(none_stop=True)
+while True:
+    try:
+        if __name__ == '__main__':
+            bot.polling(none_stop=True)
+    except Exception:
+        print('Error occured. Retrying...')
+        sleep(15)
